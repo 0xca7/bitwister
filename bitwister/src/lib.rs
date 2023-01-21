@@ -155,7 +155,7 @@ impl IntType {
                         },
 
                 32 => match u32::from_str_radix(vs[0], 
-                        if is_hex { 32 } else { 10 }) {
+                        if is_hex { 16 } else { 10 }) {
                             Ok(num) => Ok(IntType::U32(num)),
                             Err(e) => {
                                 eprintln!("ParseIntError: {e}");
@@ -164,7 +164,7 @@ impl IntType {
                         },
 
                 64 => match u64::from_str_radix(vs[0], 
-                        if is_hex { 64 } else { 10 }) {
+                        if is_hex { 16 } else { 10 }) {
                             Ok(num) => Ok(IntType::U64(num)),
                             Err(e) => {
                                 eprintln!("ParseIntError: {e}");
@@ -558,7 +558,7 @@ pub fn evaluate(s: &str) -> Option<IntType> {
                 return None;
             } else {
                 // SAFETY: checked above            
-                return v0.unwrap().calculate_binary(v1.unwrap(), op)
+                return v0.unwrap().calculate_binary(v1.unwrap(), op);
             }
         },
         _ => {
