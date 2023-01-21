@@ -2,7 +2,7 @@
 
 ![alt](doc/logo.png)
 
-A very simple calculator for bit operations.
+A very simple calculator for bit operations. This tool is based on what I need daily and was written to learn more rust.
 this calculator only understands binary operations like `+, -, AND, OR` and unary operations like `NOT`. More complex expressions are not supported.
 
 ---
