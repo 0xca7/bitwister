@@ -1,11 +1,13 @@
-use std::fmt;
-use std::io::{self, Write};
 
+use std::fmt;
+
+/// when an invalid operation is encountered
 #[derive(Debug)]
 pub enum OperationError {
     UnknownOperation,
 }
 
+/// a specific calculation operation, for example add: adds two numbers
 #[derive(Debug)]
 pub enum Operation {
     Add,
@@ -24,6 +26,8 @@ pub enum Operation {
 }
 
 impl Operation {
+
+    /// create an Operation from a string, check for errors 
     pub fn from_str(s: &str) -> Result<Operation, OperationError> {
         match s {
             "+" => Ok(Operation::Add),
@@ -43,6 +47,7 @@ impl Operation {
         }
     }
 
+    /// check if an operation is unary or not
     pub fn is_unary(&self) -> bool {
         match self {
             Operation::Neg | Operation::Not | Operation::Reg => true,
@@ -52,11 +57,35 @@ impl Operation {
     }
 }
 
+/// errors which can arise when converting integers
 #[derive(Debug)]
 pub enum IntTypeConversionError {
     InvalidInteger,
+    InvalidBitwidth,
+    UnsupportedBitwidth
 }
 
+impl fmt::Display for IntTypeConversionError {
+
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+
+        match self {
+            IntTypeConversionError::InvalidInteger => { 
+                write!(f, "error: integer value is invalid")
+            },
+            IntTypeConversionError::InvalidBitwidth => { 
+                write!(f, "error: integer bitwidth value is invalid")
+            },
+            IntTypeConversionError::UnsupportedBitwidth => { 
+                write!(f, "error: integer bitwidth is not 8, 16, 32 or 64")
+            },
+        }
+
+    } // fmt
+
+} // impl Display
+
+/// a type that describes different integer types used in this program
 #[derive(Debug, PartialEq)]
 pub enum IntType {
     U8(u8),
@@ -67,14 +96,19 @@ pub enum IntType {
 
 impl IntType {
 
+    /// take a string and parse it to an IntType, if the parsing fails, an
+    /// error is returned
     pub fn from_str(s: &str) -> Result<IntType, IntTypeConversionError> {
 
+        // check if decimal or hex
         let (s, is_hex) = if s.starts_with("0x") {
             (s.trim_start_matches("0x"), true)
         } else {
             (s, false)   
         };
 
+        // we need each value entered to be of a specific type
+        // TODO: decide if we want to default to a size, for example 32 bits
         if !s.contains("u") {
             return Err(IntTypeConversionError::InvalidInteger);
         }
@@ -84,17 +118,20 @@ impl IntType {
         let vs: Vec<&str> = s.split("u")
             .collect();
 
+        // an integer in this program always consists of two parts after split
         if vs.len() != 2 {
             return Err(IntTypeConversionError::InvalidInteger);
         }
 
+        // get the width of the integer
         let bits = usize::from_str_radix(vs[1], 10);
 
+        // check conversion result
         let bits = match bits {
             Ok(v) => v,
             Err(e) => {
                 eprintln!("error: {e}");
-                return Err(IntTypeConversionError::InvalidInteger);
+                return Err(IntTypeConversionError::InvalidBitwidth);
             }
         };
 
@@ -134,13 +171,13 @@ impl IntType {
                                 Err(IntTypeConversionError::InvalidInteger)
                             }
                         },
-                _ => Err(IntTypeConversionError::InvalidInteger)
+                _ => Err(IntTypeConversionError::UnsupportedBitwidth)
             };
 
         res 
     }
 
-    // calculation of a binary operation
+    // calculation of a binary operation, given two inttypes and an operation
     pub fn calculate_binary(self, other: IntType, op: Operation) -> Option<IntType> {
 
         // return the result and if an overflow occured
@@ -352,6 +389,7 @@ impl IntType {
         Some(res.0)
     }
 
+    /// calculate an unary operation given an IntType and an operation
     pub fn calculate_unary(self, op: Operation) -> Option<IntType> {
 
         let res = match op {
@@ -398,15 +436,6 @@ impl IntType {
         Some(res)
     }
 
-    pub fn inner(&self) -> u64 {
-        match self {
-            IntType::U8(v) => *v as u64,
-            IntType::U16(v) => *v as u64,
-            IntType::U32(v) => *v as u64,
-            IntType::U64(v) => *v as u64,
-        }
-    }
-
 }
 
 impl fmt::Display for IntType {
@@ -432,6 +461,7 @@ impl fmt::Display for IntType {
 
 } // impl Display
 
+/// print a `value` as if it were a value in an `iter_max`-bit register.
 fn regprint(value: u64, iter_max: usize) {
 
     if iter_max == 64 {
@@ -480,7 +510,7 @@ fn regprint(value: u64, iter_max: usize) {
     println!();
 }
 
-fn evaluate(s: &str) -> Option<IntType> {
+pub fn evaluate(s: &str) -> Option<IntType> {
     
     let vs: Vec<&str> = s
         .trim_end()
@@ -488,6 +518,12 @@ fn evaluate(s: &str) -> Option<IntType> {
         .collect();
 
     match vs.len() {
+        1 => {
+            if vs[0] == "q" {
+                println!("[bt]> quitting, see ya next time :^)");
+                std::process::exit(0);
+            }
+        }
         2 => {
             // unary operation
             let op = Operation::from_str(&vs[0]);
@@ -526,58 +562,142 @@ fn evaluate(s: &str) -> Option<IntType> {
             }
         },
         _ => {
-            eprintln!("[bc]> error operand count {} invalid", vs.len());
+            eprintln!("[bt]> error operand count {} invalid", vs.len());
         }
     };
 
     None
-
-}
-
-fn logo() {
-
-    let logo = r#"
-
-  ___ _ _____        _    _           
- | _ |_)_   _|_ __ _(_)__| |_ ___ _ _ 
- | _ \ | | | \ V  V / (_-<  _/ -_) '_|
- |___/_| |_|  \_/\_/|_/__/\__\___|_|  
- - the simple bit calculator for your
-   bit twisting needs.
-
-    "#;
-
-    println!("{logo}");
 }
 
 
-fn main() {
 
-    logo();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    loop {
+    #[test]
+    fn inttype_from_str() {
 
-        print!("[bt]> ");
-        io::stdout().flush().unwrap();
+        assert!(IntType::from_str("1u8").is_ok());
+        assert!(IntType::from_str("1u16").is_ok());
+        assert!(IntType::from_str("1u32").is_ok());
+        assert!(IntType::from_str("1u64").is_ok());
 
-        let mut buffer = String::new();
+        assert!(IntType::from_str("1").is_err());
+        assert!(IntType::from_str("a").is_err());
+        assert!(IntType::from_str("au8").is_err());
+        assert!(IntType::from_str("1u").is_err());
+        assert!(IntType::from_str("1u33").is_err());
 
-        match io::stdin().read_line(&mut buffer) {
-            Ok(_s) => (),
-            Err(e) => {
-                eprintln!("{e}");
-                std::process::exit(1);
-            }
-        } // match 
+    }
 
-        let result = evaluate(&buffer);
-        if result.is_some() {
-            // SAFETY: checked above
-            println!(">>>>> {}", result.unwrap());
-        } else {
-            println!("[bt]> failed to evaluate expression");
-        }
+    #[test]
+    fn operation_from_str() {
 
-    } // loop
+        assert!(Operation::from_str("+").is_ok());
+        assert!(Operation::from_str("-").is_ok());
+        assert!(Operation::from_str("*").is_ok());
+        assert!(Operation::from_str("&").is_ok());
+        assert!(Operation::from_str("|").is_ok());
+        assert!(Operation::from_str("^").is_ok());
+        assert!(Operation::from_str("<<").is_ok());
+        assert!(Operation::from_str(">>").is_ok());
+        assert!(Operation::from_str("<<<").is_ok());
+        assert!(Operation::from_str(">>>").is_ok());
+        assert!(Operation::from_str("~").is_ok());
+        assert!(Operation::from_str("!").is_ok());
+        assert!(Operation::from_str("r").is_ok());
 
+        assert!(Operation::from_str("x").is_err());
+
+    }
+
+    #[test]
+    fn operation_is_unary() {
+
+        assert!(!Operation::from_str("+").unwrap().is_unary());
+        assert!(!Operation::from_str("-").unwrap().is_unary());
+        assert!(!Operation::from_str("*").unwrap().is_unary());
+        assert!(!Operation::from_str("&").unwrap().is_unary());
+        assert!(!Operation::from_str("|").unwrap().is_unary());
+        assert!(!Operation::from_str("^").unwrap().is_unary());
+        assert!(!Operation::from_str("<<").unwrap().is_unary());
+        assert!(!Operation::from_str(">>").unwrap().is_unary());
+        assert!(!Operation::from_str("<<<").unwrap().is_unary());
+        assert!(!Operation::from_str(">>>").unwrap().is_unary());
+        assert!(Operation::from_str("~").unwrap().is_unary());
+        assert!(Operation::from_str("!").unwrap().is_unary());
+        assert!(Operation::from_str("r").unwrap().is_unary());
+
+        assert!(Operation::from_str("x").is_err());
+
+    }
+
+    #[test]
+    fn evaluate_test() {
+        assert!(evaluate("1u8 + 1u8").is_some());
+        assert!(evaluate("1u8 - 1u8").is_some());
+        assert!(evaluate("1u8 * 1u8").is_some());
+        assert!(evaluate("1u8 & 1u8").is_some());
+        assert!(evaluate("1u8 | 1u8").is_some());
+        assert!(evaluate("1u8 ^ 1u8").is_some());
+        assert!(evaluate("1u8 << 1u8").is_some());
+        assert!(evaluate("1u8 >> 1u8").is_some());
+        assert!(evaluate("1u8 <<< 1u8").is_some());
+        assert!(evaluate("1u8 >>> 1u8").is_some());
+        assert!(evaluate("! 1u8").is_some());
+        assert!(evaluate("~ 1u8").is_some());
+        assert!(evaluate("r 1u8").is_some());
+
+        assert!(evaluate("1u16 + 1u16").is_some());
+        assert!(evaluate("1u16 - 1u16").is_some());
+        assert!(evaluate("1u16 * 1u16").is_some());
+        assert!(evaluate("1u16 & 1u16").is_some());
+        assert!(evaluate("1u16 | 1u16").is_some());
+        assert!(evaluate("1u16 ^ 1u16").is_some());
+        assert!(evaluate("1u16 << 1u16").is_some());
+        assert!(evaluate("1u16 >> 1u16").is_some());
+        assert!(evaluate("1u16 <<< 1u16").is_some());
+        assert!(evaluate("1u16 >>> 1u16").is_some());
+        assert!(evaluate("! 1u16").is_some());
+        assert!(evaluate("~ 1u16").is_some());
+        assert!(evaluate("r 1u16").is_some());
+
+        assert!(evaluate("1u32 + 1u32").is_some());
+        assert!(evaluate("1u32 - 1u32").is_some());
+        assert!(evaluate("1u32 * 1u32").is_some());
+        assert!(evaluate("1u32 & 1u32").is_some());
+        assert!(evaluate("1u32 | 1u32").is_some());
+        assert!(evaluate("1u32 ^ 1u32").is_some());
+        assert!(evaluate("1u32 << 1u32").is_some());
+        assert!(evaluate("1u32 >> 1u32").is_some());
+        assert!(evaluate("1u32 <<< 1u32").is_some());
+        assert!(evaluate("1u32 >>> 1u32").is_some());
+        assert!(evaluate("! 1u32").is_some());
+        assert!(evaluate("~ 1u32").is_some());
+        assert!(evaluate("r 1u32").is_some());
+
+        assert!(evaluate("1u64 + 1u64").is_some());
+        assert!(evaluate("1u64 - 1u64").is_some());
+        assert!(evaluate("1u64 * 1u64").is_some());
+        assert!(evaluate("1u64 & 1u64").is_some());
+        assert!(evaluate("1u64 | 1u64").is_some());
+        assert!(evaluate("1u64 ^ 1u64").is_some());
+        assert!(evaluate("1u64 << 1u64").is_some());
+        assert!(evaluate("1u64 >> 1u64").is_some());
+        assert!(evaluate("1u64 <<< 1u64").is_some());
+        assert!(evaluate("1u64 >>> 1u64").is_some());
+        assert!(evaluate("! 1u64").is_some());
+        assert!(evaluate("~ 1u64").is_some());
+        assert!(evaluate("r 1u64").is_some());
+
+        assert!(evaluate("1u64 ++ 1u64").is_none());
+        assert!(evaluate("1u64 - u64").is_none());
+        assert!(evaluate("u64 * 1u64").is_none());
+        assert!(evaluate("1u64 x 1u64").is_none());
+        assert!(evaluate("1au64 | 1u64").is_none());
+        assert!(evaluate("! 1u6").is_none());
+        assert!(evaluate("~ -1u64").is_none());
+        assert!(evaluate("rr 1u64").is_none());
+    }
 }

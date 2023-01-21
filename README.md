@@ -9,9 +9,9 @@ this calculator only understands binary operations like `+, -, AND, OR` and unar
 
 ### Usage
 
-Build with `cd src/` and `cargo build --release`.
+Build with `cd bitwister/` and `cargo build --release`.
 
-Run the calculator with `./bitwiser` which will give you a prompt: `[bt]>`.
+Run the calculator with `./bitwister` which will give you a prompt: `[bt]>`.
 
 All numeric inputs have the form: `[number]u[width]`, with the possible inputs: `[number]u8, [number]u16, [number]u32, [number]u64`. The calculator understands decimals and hex, if you want hex, add "0x" in front of the `[number]`, for example: `0xf00du16`.
 
