@@ -46,12 +46,30 @@ impl Operation {
         }
     }
 
+    pub fn show_operations() {
+        println!("[+]   addition        example: 0x1u8 + 0x1u8");
+        println!("[-]   subraction      example: 0x1u8 - 0x1u8");
+        println!("[*]   multiplciation  example: 0x1u8 * 0x2u8");
+        println!("[&]   bitwise AND     example: 0xdeadu16 & 0x03u16");
+        println!("[|]   bitwise OR      example: 0x03u8 | 0x4u8 ");
+        println!("[^]   bitwise XOR     example: 0xdeadbeefu32 ^ 0xbaadu32");
+        println!("[<<]  shift left      example: 1u32 << 10u32");
+        println!("[>>]  shift right     example: 10000u32 >> 10u32");
+        println!("[<<<] rotate left     example: 1u8 <<< 16u8");
+        println!("[>>>] rotate right    example: 1u8 >>> 1u8");
+        println!("[~]   negate          example: ~ 0x1u8");
+        println!("[!]   bitwise NOT     example: ! 0xdeadbeefu32");
+        println!("[r]   regshow         example: r 0xdeadbeefc0cac01au64");
+    }
+
     /// check if an operation is unary or not
     pub fn is_unary(&self) -> bool {
         matches!(self, Operation::Neg | Operation::Not | Operation::Reg)
     }
 
 }
+
+
 
 /// errors which can arise when converting integers
 #[derive(Debug)]
@@ -510,12 +528,6 @@ pub fn evaluate(s: &str) -> Option<IntType> {
         .collect();
 
     match vs.len() {
-        1 => {
-            if vs[0] == "q" {
-                println!("[bt]> quitting, see ya next time :^)");
-                std::process::exit(0);
-            }
-        }
         2 => {
             // unary operation
             let op = Operation::new_from_str(vs[0]);
@@ -561,7 +573,14 @@ pub fn evaluate(s: &str) -> Option<IntType> {
     None
 }
 
-
+pub fn show_help() {
+    println!("\n\nHELP:\n");
+    println!("use [q] to quit the calculator");
+    println!("use [?] to list this help\n");
+    println!("available operations: ");
+    Operation::show_operations();
+    println!("\n\n");
+}
 
 #[cfg(test)]
 mod tests {

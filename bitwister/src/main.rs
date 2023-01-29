@@ -1,4 +1,7 @@
-use bitwister::evaluate;
+use bitwister::{
+    evaluate,
+    show_help
+};
 
 use std::io::{self, Write};
 
@@ -21,6 +24,8 @@ fn logo() {
 fn main() {
 
     logo();
+    io::stdout().flush().unwrap();
+    println!("[?] show help\n[q] quit\n");
 
     loop {
 
@@ -36,6 +41,20 @@ fn main() {
                 std::process::exit(1);
             }
         } // match 
+
+        if let Some(first_char) = &buffer.chars().nth(0) {
+            match first_char {
+                'q' => {
+                    println!("[bt]> quitting, see ya next time :^)");
+                    std::process::exit(0);
+                },
+                '?' => {
+                    show_help();
+                    continue;
+                },
+                _ => (),
+            }
+        }
 
         let result = evaluate(&buffer);
         if result.is_some() {
