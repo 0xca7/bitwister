@@ -1,4 +1,3 @@
-
 use std::fmt;
 
 /// when an invalid operation is encountered
@@ -28,7 +27,7 @@ pub enum Operation {
 impl Operation {
 
     /// create an Operation from a string, check for errors 
-    pub fn from_str(s: &str) -> Result<Operation, OperationError> {
+    pub fn new_from_str(s: &str) -> Result<Operation, OperationError> {
         match s {
             "+" => Ok(Operation::Add),
             "-" => Ok(Operation::Sub),
@@ -49,12 +48,9 @@ impl Operation {
 
     /// check if an operation is unary or not
     pub fn is_unary(&self) -> bool {
-        match self {
-            Operation::Neg | Operation::Not | Operation::Reg => true,
-            _ => false,
-        }
-
+        matches!(self, Operation::Neg | Operation::Not | Operation::Reg)
     }
+
 }
 
 /// errors which can arise when converting integers
@@ -98,7 +94,7 @@ impl IntType {
 
     /// take a string and parse it to an IntType, if the parsing fails, an
     /// error is returned
-    pub fn from_str(s: &str) -> Result<IntType, IntTypeConversionError> {
+    pub fn new_from_str(s: &str) -> Result<IntType, IntTypeConversionError> {
 
         // check if decimal or hex
         let (s, is_hex) = if s.starts_with("0x") {
@@ -108,14 +104,13 @@ impl IntType {
         };
 
         // we need each value entered to be of a specific type
-        // TODO: decide if we want to default to a size, for example 32 bits
-        if !s.contains("u") {
+        if !s.contains('u') {
             return Err(IntTypeConversionError::InvalidInteger);
         }
 
         // if we have something like 1u8 we need to separate the two terms
         // into 1 and 8
-        let vs: Vec<&str> = s.split("u")
+        let vs: Vec<&str> = s.split('u')
             .collect();
 
         // an integer in this program always consists of two parts after split
@@ -124,7 +119,7 @@ impl IntType {
         }
 
         // get the width of the integer
-        let bits = usize::from_str_radix(vs[1], 10);
+        let bits = vs[1].parse::<usize>();
 
         // check conversion result
         let bits = match bits {
@@ -312,7 +307,7 @@ impl IntType {
                         (IntType::U16( v.checked_shl(u as u32).unwrap_or(0) ), None)
                     },
                     (Self::U32(v), Self::U32(u)) => {
-                        (IntType::U32( v.checked_shl(u as u32).unwrap_or(0) ), None)
+                        (IntType::U32( v.checked_shl(u).unwrap_or(0) ), None)
                     },
                     (Self::U64(v), Self::U64(u)) => {
                         (IntType::U64( v.checked_shl(u as u32).unwrap_or(0) ), None)
@@ -330,7 +325,7 @@ impl IntType {
                         (IntType::U16( v.checked_shr(u as u32).unwrap_or(0) ), None)
                     },
                     (Self::U32(v), Self::U32(u)) => {
-                        (IntType::U32( v.checked_shr(u as u32).unwrap_or(0) ), None)
+                        (IntType::U32( v.checked_shr(u).unwrap_or(0) ), None)
                     },
                     (Self::U64(v), Self::U64(u)) => {
                         (IntType::U64( v.checked_shr(u as u32).unwrap_or(0) ), None)
@@ -348,7 +343,7 @@ impl IntType {
                         (IntType::U16( v.rotate_left(u as u32) ), None)
                     },
                     (Self::U32(v), Self::U32(u)) => {
-                        (IntType::U32( v.rotate_left(u as u32) ), None)
+                        (IntType::U32( v.rotate_left(u) ), None)
                     },
                     (Self::U64(v), Self::U64(u)) => {
                         (IntType::U64( v.rotate_left(u as u32) ), None)
@@ -366,7 +361,7 @@ impl IntType {
                         (IntType::U16( v.rotate_right(u as u32) ), None)
                     },
                     (Self::U32(v), Self::U32(u)) => {
-                        (IntType::U32( v.rotate_right(u as u32) ), None)
+                        (IntType::U32( v.rotate_right(u) ), None)
                     },
                     (Self::U64(v), Self::U64(u)) => {
                         (IntType::U64( v.rotate_right(u as u32) ), None)
@@ -379,11 +374,8 @@ impl IntType {
 
         };
 
-        if res.1.is_some() {
-            // SAFETY: checked for is_some above
-            if res.1.unwrap() {
-                println!("[overflow]: {:?}", res.1.unwrap());
-            }
+        if let Some(overflow) = res.1 {
+            println!("[overflow]: {:?}", overflow);
         }
 
         Some(res.0)
@@ -425,7 +417,7 @@ impl IntType {
                         IntType::U32(v)
                     },
                     IntType::U64(v) => {
-                        regprint(v as u64, 64);
+                        regprint(v, 64);
                         IntType::U64(v)
                     },
                 }
@@ -514,7 +506,7 @@ pub fn evaluate(s: &str) -> Option<IntType> {
     
     let vs: Vec<&str> = s
         .trim_end()
-        .split(" ")
+        .split(' ')
         .collect();
 
     match vs.len() {
@@ -526,8 +518,8 @@ pub fn evaluate(s: &str) -> Option<IntType> {
         }
         2 => {
             // unary operation
-            let op = Operation::from_str(&vs[0]);
-            let v0 = IntType::from_str(&vs[1]);
+            let op = Operation::new_from_str(vs[0]);
+            let v0 = IntType::new_from_str(vs[1]);
 
             if v0.is_err() || op.is_err() {
                 return None;
@@ -543,9 +535,9 @@ pub fn evaluate(s: &str) -> Option<IntType> {
         },
         3 => {
             // binary operation
-            let v0 = IntType::from_str(&vs[0]);
-            let op = Operation::from_str(&vs[1]);
-            let v1 = IntType::from_str(&vs[2]);
+            let v0 = IntType::new_from_str(vs[0]);
+            let op = Operation::new_from_str(vs[1]);
+            let v1 = IntType::new_from_str(vs[2]);
 
             if v0.is_err() || op.is_err() || v1.is_err() {
                 return None;
@@ -576,60 +568,60 @@ mod tests {
     use super::*;
 
     #[test]
-    fn inttype_from_str() {
+    fn inttype_new_from_str() {
 
-        assert!(IntType::from_str("1u8").is_ok());
-        assert!(IntType::from_str("1u16").is_ok());
-        assert!(IntType::from_str("1u32").is_ok());
-        assert!(IntType::from_str("1u64").is_ok());
+        assert!(IntType::new_from_str("1u8").is_ok());
+        assert!(IntType::new_from_str("1u16").is_ok());
+        assert!(IntType::new_from_str("1u32").is_ok());
+        assert!(IntType::new_from_str("1u64").is_ok());
 
-        assert!(IntType::from_str("1").is_err());
-        assert!(IntType::from_str("a").is_err());
-        assert!(IntType::from_str("au8").is_err());
-        assert!(IntType::from_str("1u").is_err());
-        assert!(IntType::from_str("1u33").is_err());
+        assert!(IntType::new_from_str("1").is_err());
+        assert!(IntType::new_from_str("a").is_err());
+        assert!(IntType::new_from_str("au8").is_err());
+        assert!(IntType::new_from_str("1u").is_err());
+        assert!(IntType::new_from_str("1u33").is_err());
 
     }
 
     #[test]
-    fn operation_from_str() {
+    fn operation_new_from_str() {
 
-        assert!(Operation::from_str("+").is_ok());
-        assert!(Operation::from_str("-").is_ok());
-        assert!(Operation::from_str("*").is_ok());
-        assert!(Operation::from_str("&").is_ok());
-        assert!(Operation::from_str("|").is_ok());
-        assert!(Operation::from_str("^").is_ok());
-        assert!(Operation::from_str("<<").is_ok());
-        assert!(Operation::from_str(">>").is_ok());
-        assert!(Operation::from_str("<<<").is_ok());
-        assert!(Operation::from_str(">>>").is_ok());
-        assert!(Operation::from_str("~").is_ok());
-        assert!(Operation::from_str("!").is_ok());
-        assert!(Operation::from_str("r").is_ok());
+        assert!(Operation::new_from_str("+").is_ok());
+        assert!(Operation::new_from_str("-").is_ok());
+        assert!(Operation::new_from_str("*").is_ok());
+        assert!(Operation::new_from_str("&").is_ok());
+        assert!(Operation::new_from_str("|").is_ok());
+        assert!(Operation::new_from_str("^").is_ok());
+        assert!(Operation::new_from_str("<<").is_ok());
+        assert!(Operation::new_from_str(">>").is_ok());
+        assert!(Operation::new_from_str("<<<").is_ok());
+        assert!(Operation::new_from_str(">>>").is_ok());
+        assert!(Operation::new_from_str("~").is_ok());
+        assert!(Operation::new_from_str("!").is_ok());
+        assert!(Operation::new_from_str("r").is_ok());
 
-        assert!(Operation::from_str("x").is_err());
+        assert!(Operation::new_from_str("x").is_err());
 
     }
 
     #[test]
     fn operation_is_unary() {
 
-        assert!(!Operation::from_str("+").unwrap().is_unary());
-        assert!(!Operation::from_str("-").unwrap().is_unary());
-        assert!(!Operation::from_str("*").unwrap().is_unary());
-        assert!(!Operation::from_str("&").unwrap().is_unary());
-        assert!(!Operation::from_str("|").unwrap().is_unary());
-        assert!(!Operation::from_str("^").unwrap().is_unary());
-        assert!(!Operation::from_str("<<").unwrap().is_unary());
-        assert!(!Operation::from_str(">>").unwrap().is_unary());
-        assert!(!Operation::from_str("<<<").unwrap().is_unary());
-        assert!(!Operation::from_str(">>>").unwrap().is_unary());
-        assert!(Operation::from_str("~").unwrap().is_unary());
-        assert!(Operation::from_str("!").unwrap().is_unary());
-        assert!(Operation::from_str("r").unwrap().is_unary());
+        assert!(!Operation::new_from_str("+").unwrap().is_unary());
+        assert!(!Operation::new_from_str("-").unwrap().is_unary());
+        assert!(!Operation::new_from_str("*").unwrap().is_unary());
+        assert!(!Operation::new_from_str("&").unwrap().is_unary());
+        assert!(!Operation::new_from_str("|").unwrap().is_unary());
+        assert!(!Operation::new_from_str("^").unwrap().is_unary());
+        assert!(!Operation::new_from_str("<<").unwrap().is_unary());
+        assert!(!Operation::new_from_str(">>").unwrap().is_unary());
+        assert!(!Operation::new_from_str("<<<").unwrap().is_unary());
+        assert!(!Operation::new_from_str(">>>").unwrap().is_unary());
+        assert!(Operation::new_from_str("~").unwrap().is_unary());
+        assert!(Operation::new_from_str("!").unwrap().is_unary());
+        assert!(Operation::new_from_str("r").unwrap().is_unary());
 
-        assert!(Operation::from_str("x").is_err());
+        assert!(Operation::new_from_str("x").is_err());
 
     }
 
