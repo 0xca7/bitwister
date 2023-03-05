@@ -70,7 +70,6 @@ impl Operation {
 }
 
 
-
 /// errors which can arise when converting integers
 #[derive(Debug)]
 pub enum IntTypeConversionError {
@@ -93,6 +92,25 @@ impl fmt::Display for IntTypeConversionError {
             IntTypeConversionError::UnsupportedBitwidth => { 
                 write!(f, "error: integer bitwidth is not 8, 16, 32 or 64")
             },
+        }
+
+    } // fmt
+
+} // impl Display
+
+pub enum Overflow {
+    NotPossible, // some operations can't overflow
+    NoOverflow,  // didn't overflow
+    Occured,     // overflow occured
+}
+impl fmt::Display for Overflow {
+
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+
+        match self {
+            Overflow::Occured => write!(f, "[overflow occured]"),
+            Overflow::NoOverflow => write!(f, "[no overflow]"),
+            Overflow::NotPossible => write!(f, ""),
         }
 
     } // fmt
@@ -191,7 +209,7 @@ impl IntType {
     }
 
     // calculation of a binary operation, given two inttypes and an operation
-    pub fn calculate_binary(self, other: IntType, op: Operation) -> Option<IntType> {
+    pub fn calculate_binary(self, other: IntType, op: Operation) -> Option<(IntType, Overflow)> {
 
         // return the result and if an overflow occured
         let res = match op {
@@ -392,15 +410,22 @@ impl IntType {
 
         };
 
-        if let Some(overflow) = res.1 {
-            println!("[overflow]: {:?}", overflow);
-        }
+        let overflow = if let Some(overflow) = res.1 {
+            // overflows are possible, check if occured or not
+            if overflow {
+                Overflow::Occured
+            } else {
+                Overflow::NoOverflow
+            }
+        } else {
+            Overflow::NotPossible
+        };
 
-        Some(res.0)
+        Some((res.0, overflow))
     }
 
     /// calculate an unary operation given an IntType and an operation
-    pub fn calculate_unary(self, op: Operation) -> Option<IntType> {
+    pub fn calculate_unary(self, op: Operation) -> Option<(IntType, Overflow)> {
 
         let res = match op {
             Operation::Neg => {
@@ -443,7 +468,7 @@ impl IntType {
             _ => panic!("error"),
         };
 
-        Some(res)
+        Some((res, Overflow::NotPossible))
     }
 
 }
@@ -520,7 +545,7 @@ fn regprint(value: u64, iter_max: usize) {
     println!();
 }
 
-pub fn evaluate(s: &str) -> Option<IntType> {
+pub fn evaluate(s: &str) -> Option<(IntType, Overflow)> {
     
     let vs: Vec<&str> = s
         .trim_end()
