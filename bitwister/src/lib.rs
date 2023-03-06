@@ -600,8 +600,7 @@ pub fn evaluate(s: &str) -> Option<(IntType, Overflow)> {
 
 pub fn show_help() {
     println!("\n\nHELP:\n");
-    println!("use [q] to quit the calculator");
-    println!("use [?] to list this help\n");
+    println!("use [h] to list this help\n");
     println!("available operations: ");
     Operation::show_operations();
     println!("\n\n");
