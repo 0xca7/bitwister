@@ -479,16 +479,16 @@ impl fmt::Display for IntType {
 
         match self {
             IntType::U8(v) => {
-                write!(f, "0x{:02x} b{:b} {}", v, v, v)
+                write!(f, "hex: 0x{:02x} bin: b{:b} dec: {}", v, v, v)
             },
             IntType::U16(v) => {
-                write!(f, "0x{:04x} b{:b} {}", v, v, v)
+                write!(f, "hex: 0x{:04x} bin: b{:b} dec: {}", v, v, v)
             },
             IntType::U32(v) => {
-                write!(f, "0x{:08x} b{:b} {}", v, v, v)
+                write!(f, "hex: 0x{:08x} bin: b{:b} dec: {}", v, v, v)
             },
             IntType::U64(v) => {
-                write!(f, "0x{:16x} b{:b} {}", v, v, v)
+                write!(f, "hex: 0x{:16x} bin: b{:b} dec: {}", v, v, v)
             },
         }
 
@@ -591,7 +591,7 @@ pub fn evaluate(s: &str) -> Option<(IntType, Overflow)> {
             }
         },
         _ => {
-            eprintln!("[bt]> error operand count {} invalid", vs.len());
+            //eprintln!("[bt]> error operand count {} invalid", vs.len());
         }
     };
 

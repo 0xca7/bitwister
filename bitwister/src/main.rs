@@ -13,7 +13,6 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use std::io::{Write, stdout, stdin, Stdout};
 use std::collections::VecDeque;
 
-
 fn logo() {
 
     let logo = r#"
@@ -54,6 +53,18 @@ fn clear(stdout: &mut RawTerminal<Stdout>) {
     stdout.flush().unwrap();
 }
 
+fn clear_newline(stdout: &mut RawTerminal<Stdout>) {
+
+    let (_, y)= stdout.cursor_pos().unwrap();
+
+    write!(stdout,
+            "{}{}",
+            termion::cursor::Goto(1, y+1),
+            termion::clear::CurrentLine)
+            .unwrap();
+    stdout.flush().unwrap();
+}
+
 fn prompt() {
     print!("{} ", PROMPT);
 }
@@ -63,9 +74,14 @@ fn input_loop() {
     logo();
     show_help();
 
+    let mut cursor = 0usize;
     let mut line = String::new();
     let mut history: VecDeque<String> = VecDeque::new();
     let mut history_cursor = 0usize;
+
+    print!("press enter to start twisting...");
+    //std::io::stdin().read_line(&mut line).expect("unable to read line");
+    line.clear();
 
     let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
@@ -75,7 +91,7 @@ fn input_loop() {
     write!(stdout,
             "{}{}",
             termion::cursor::Goto(1, 1),
-            termion::clear::CurrentLine)
+            termion::clear::All)
             .unwrap();
 
     prompt();
@@ -95,14 +111,15 @@ fn input_loop() {
                         save_history(&mut history, &line);
                         let result = evaluate(&line);
                         if result.is_some() {
-                            // SAFETY: checked abovea
+                            // SAFETY: checked above
                             let (num, overflow) = result.unwrap();
                             clear(&mut stdout);
                             prompt();
                             println!("{line}");
                             clear(&mut stdout);
-                            println!(">>> {} {}", num, overflow);
+                            println!("      {} {}", num, overflow);
                         } else {
+                            clear_newline(&mut stdout);
                             println!("[bt]> failed to evaluate expression: {line}");
                         }
                         line.clear();
@@ -116,8 +133,8 @@ fn input_loop() {
                 show_help();
             },
             Key::Char(c) => {
-                print!("{}", c);
                 line.push(c);
+                print!("{c}");
             },
             // this enables a history in the application
             Key::Up => {
@@ -143,9 +160,7 @@ fn input_loop() {
     clear(&mut stdout);
     write!(stdout, "{}", termion::cursor::Show).unwrap();
     println!("[bt]> quitting, see ya next time :^)");
-
 }
-
 
 fn main() {
     input_loop();
