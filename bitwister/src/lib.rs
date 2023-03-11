@@ -21,7 +21,8 @@ pub enum Operation {
     Ror,
     Neg,
     Not,
-    Reg,
+    Reg, // register view
+    End, // swap endianess
 }
 
 impl Operation {
@@ -42,6 +43,7 @@ impl Operation {
             "~" => Ok(Operation::Neg),
             "!" => Ok(Operation::Not),
             "r" => Ok(Operation::Reg),
+            "e" => Ok(Operation::End),
             _ => Err(OperationError::UnknownOperation)
         }
     }
@@ -60,11 +62,13 @@ impl Operation {
         println!("[~]   negate          example: ~ 0x1u8");
         println!("[!]   bitwise NOT     example: ! 0xdeadbeefu32");
         println!("[r]   regshow         example: r 0xdeadbeefc0cac01au64");
+        println!("[e]   endian swap     example: e 0xdeadbeefc0cac01au64");
     }
 
     /// check if an operation is unary or not
     pub fn is_unary(&self) -> bool {
-        matches!(self, Operation::Neg | Operation::Not | Operation::Reg)
+        matches!(self, Operation::Neg | Operation::Not
+            | Operation::Reg | Operation::End)
     }
 
 }
@@ -464,6 +468,22 @@ impl IntType {
                         IntType::U64(v)
                     },
                 }
+            },
+            Operation::End => {
+                match self {
+                    IntType::U8(v) => {
+                        IntType::U8(v.swap_bytes())
+                    },
+                    IntType::U16(v) => {
+                        IntType::U16(v.swap_bytes())
+                    },
+                    IntType::U32(v) => {
+                        IntType::U32(v.swap_bytes())
+                    },
+                    IntType::U64(v) => {
+                        IntType::U64(v.swap_bytes())
+                    },
+                }
             }
             _ => panic!("error"),
         };
@@ -683,6 +703,7 @@ mod tests {
         assert!(evaluate("! 1u8").is_some());
         assert!(evaluate("~ 1u8").is_some());
         assert!(evaluate("r 1u8").is_some());
+        assert!(evaluate("e 1u8").is_some());
 
         assert!(evaluate("1u16 + 1u16").is_some());
         assert!(evaluate("1u16 - 1u16").is_some());
@@ -697,6 +718,7 @@ mod tests {
         assert!(evaluate("! 1u16").is_some());
         assert!(evaluate("~ 1u16").is_some());
         assert!(evaluate("r 1u16").is_some());
+        assert!(evaluate("e 1u16").is_some());
 
         assert!(evaluate("1u32 + 1u32").is_some());
         assert!(evaluate("1u32 - 1u32").is_some());
@@ -711,6 +733,7 @@ mod tests {
         assert!(evaluate("! 1u32").is_some());
         assert!(evaluate("~ 1u32").is_some());
         assert!(evaluate("r 1u32").is_some());
+        assert!(evaluate("e 1u32").is_some());
 
         assert!(evaluate("1u64 + 1u64").is_some());
         assert!(evaluate("1u64 - 1u64").is_some());
@@ -725,6 +748,7 @@ mod tests {
         assert!(evaluate("! 1u64").is_some());
         assert!(evaluate("~ 1u64").is_some());
         assert!(evaluate("r 1u64").is_some());
+        assert!(evaluate("e 1u64").is_some());
 
         assert!(evaluate("1u64 ++ 1u64").is_none());
         assert!(evaluate("1u64 - u64").is_none());
