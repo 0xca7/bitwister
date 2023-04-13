@@ -5,6 +5,9 @@ use bitwister::{
     show_help
 };
 
+mod repl;
+use repl::repl;
+
 use std::env;
 
 fn logo() {
@@ -31,10 +34,22 @@ fn main() {
         std::process::exit(1);
     }
 
-    if args[1] == "h" {
+    if args[1] == "-h" {
         logo();
         show_help();
         std::process::exit(1);
+    }
+
+    if args[1] == "-i" {
+        match repl() {
+            Ok(()) => {
+                std::process::exit(0);
+            },
+            Err(e) => {
+                eprintln!("bitwister, exiting with error: {e}");
+                std::process::exit(1);
+            }
+        }
     }
 
     args.remove(0);

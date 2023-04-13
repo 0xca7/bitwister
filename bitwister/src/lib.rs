@@ -1,3 +1,4 @@
+
 use std::fmt;
 
 /// when an invalid operation is encountered
@@ -620,7 +621,8 @@ pub fn evaluate(s: &str) -> Option<(IntType, Overflow)> {
 
 pub fn show_help() {
     println!("\n\nHELP:\n");
-    println!("use [h] to list this help\n");
+    println!("use [-h] to list this help\n");
+    println!("use [-i] to enter interactive mode\n");
     println!("available operations: ");
     Operation::show_operations();
     println!("\n\n");
