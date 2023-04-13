@@ -500,16 +500,16 @@ impl fmt::Display for IntType {
 
         match self {
             IntType::U8(v) => {
-                write!(f, "hex: 0x{:02x} bin: b{:b} dec: {}", v, v, v)
+                write!(f, "hex: 0x{:02x} bin: b{:#08b} dec: {}", v, v, v)
             },
             IntType::U16(v) => {
-                write!(f, "hex: 0x{:04x} bin: b{:b} dec: {}", v, v, v)
+                write!(f, "hex: 0x{:04x} bin: b{:#016b} dec: {}", v, v, v)
             },
             IntType::U32(v) => {
-                write!(f, "hex: 0x{:08x} bin: b{:b} dec: {}", v, v, v)
+                write!(f, "hex: 0x{:08x} bin: b{:#032b} dec: {}", v, v, v)
             },
             IntType::U64(v) => {
-                write!(f, "hex: 0x{:16x} bin: b{:b} dec: {}", v, v, v)
+                write!(f, "hex: 0x{:016x} bin: b{:#064b} dec: {}", v, v, v)
             },
         }
 
