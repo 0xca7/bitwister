@@ -13,6 +13,7 @@ pub enum Operation {
     Add,
     Sub,
     Mul,
+    Div,
     And,
     Or,
     Xor,
@@ -34,6 +35,7 @@ impl Operation {
             "+" => Ok(Operation::Add),
             "-" => Ok(Operation::Sub),
             "*" => Ok(Operation::Mul),
+            "/" => Ok(Operation::Div),
             "&" => Ok(Operation::And),
             "|" => Ok(Operation::Or),
             "^" => Ok(Operation::Xor),
@@ -53,6 +55,7 @@ impl Operation {
         println!("[+]   addition        example: 0x1u8 + 0x1u8");
         println!("[-]   subraction      example: 0x1u8 - 0x1u8");
         println!("[*]   multiplciation  example: 0x1u8 * 0x2u8");
+        println!("[/]   divide          example: 0x4u8 / 0x2u8");
         println!("[&]   bitwise AND     example: 0xdeadu16 & 0x03u16");
         println!("[|]   bitwise OR      example: 0x03u8 | 0x4u8 ");
         println!("[^]   bitwise XOR     example: 0xdeadbeefu32 ^ 0xbaadu32");
@@ -73,6 +76,8 @@ impl Operation {
     }
 
 }
+
+
 
 
 /// errors which can arise when converting integers
@@ -132,6 +137,7 @@ pub enum IntType {
 }
 
 impl IntType {
+
 
     /// take a string and parse it to an IntType, if the parsing fails, an
     /// error is returned
@@ -279,6 +285,28 @@ impl IntType {
                     },
                     (Self::U64(v), Self::U64(u)) => {
                         let (val, overflow) = v.overflowing_mul(u);
+                        ( IntType::U64( val ), Some(overflow))
+                    },
+                    _ => panic!("error"),
+                }
+            },
+
+            Operation::Div => {
+                match (self, other) {
+                    (Self::U8(v), Self::U8(u)) => {
+                        let (val, overflow) = v.overflowing_div(u);
+                        ( IntType::U8( val ), Some(overflow))
+                    },
+                    (Self::U16(v), Self::U16(u)) => {
+                        let (val, overflow) = v.overflowing_div(u);
+                        ( IntType::U16( val ), Some(overflow))
+                    },
+                    (Self::U32(v), Self::U32(u)) => {
+                        let (val, overflow) = v.overflowing_div(u);
+                        ( IntType::U32( val ), Some(overflow))
+                    },
+                    (Self::U64(v), Self::U64(u)) => {
+                        let (val, overflow) = v.overflowing_div(u);
                         ( IntType::U64( val ), Some(overflow))
                     },
                     _ => panic!("error"),
@@ -492,6 +520,25 @@ impl IntType {
         Some((res, Overflow::NotPossible))
     }
 
+    // this should return as string or &str
+    pub fn to_ascii(&self) -> String {
+
+        let mut res = String::new();
+
+        let (inner, len) = match self {
+            IntType::U8(v) => (*v as u64, 1),
+            IntType::U16(v) => (*v as u64, 2),
+            IntType::U32(v) => (*v as u64, 4),
+            IntType::U64(v) => (*v as u64, 8),
+        };
+
+        for i in (0..len).rev() {
+            let byte = ((inner >> i*8) & 0xff) as u8;
+            res.push_str(&check_ascii(byte));
+        }
+        res
+    }
+
 }
 
 impl fmt::Display for IntType {
@@ -500,22 +547,44 @@ impl fmt::Display for IntType {
 
         match self {
             IntType::U8(v) => {
-                write!(f, "hex: 0x{:02x} bin: b{:#08b} dec: {}", v, v, v)
+                write!(f, "hex:   0x{:02x}\n", v)?;
+                write!(f, "        bin:   b{:08b}\n", v)?;
+                write!(f, "        dec:   {}\n", v)?;
+                write!(f, "        ascii: {}\n", self.to_ascii())
             },
             IntType::U16(v) => {
-                write!(f, "hex: 0x{:04x} bin: b{:#016b} dec: {}", v, v, v)
+
+                write!(f, "hex:   0x{:04x}\n", v)?;
+                write!(f, "        bin:   b{:016b}\n", v)?;
+                write!(f, "        dec:   {}\n", v)?;
+                write!(f, "        ascii: {}\n", self.to_ascii())
             },
             IntType::U32(v) => {
-                write!(f, "hex: 0x{:08x} bin: b{:#032b} dec: {}", v, v, v)
+                write!(f, "hex:   0x{:08x}\n", v)?;
+                write!(f, "        bin:   b{:032b}\n", v)?;
+                write!(f, "        dec:   {}\n", v)?;
+                write!(f, "        ascii: {}\n", self.to_ascii())
             },
             IntType::U64(v) => {
-                write!(f, "hex: 0x{:016x} bin: b{:#064b} dec: {}", v, v, v)
+                write!(f, "hex:   0x{:016x}\n", v)?;
+                write!(f, "        bin:   b{:064b}\n", v)?;
+                write!(f, "        dec:   {}\n", v)?;
+                write!(f, "        ascii: {}\n", self.to_ascii())
             },
         }
 
     } // fmt
 
 } // impl Display
+
+
+fn check_ascii(v: u8) -> String {
+    if v >= 0x20 && v <= 0x7e {
+        String::from(v as char)
+    } else {
+        String::from(".")
+    }
+}
 
 /// print a `value` as if it were a value in an `iter_max`-bit register.
 fn regprint(value: u64, iter_max: usize) {
@@ -695,6 +764,7 @@ mod tests {
         assert!(evaluate("1u8 + 1u8").is_some());
         assert!(evaluate("1u8 - 1u8").is_some());
         assert!(evaluate("1u8 * 1u8").is_some());
+        assert!(evaluate("1u8 / 1u8").is_some());
         assert!(evaluate("1u8 & 1u8").is_some());
         assert!(evaluate("1u8 | 1u8").is_some());
         assert!(evaluate("1u8 ^ 1u8").is_some());
@@ -710,6 +780,7 @@ mod tests {
         assert!(evaluate("1u16 + 1u16").is_some());
         assert!(evaluate("1u16 - 1u16").is_some());
         assert!(evaluate("1u16 * 1u16").is_some());
+        assert!(evaluate("1u16 / 1u16").is_some());
         assert!(evaluate("1u16 & 1u16").is_some());
         assert!(evaluate("1u16 | 1u16").is_some());
         assert!(evaluate("1u16 ^ 1u16").is_some());
@@ -725,6 +796,7 @@ mod tests {
         assert!(evaluate("1u32 + 1u32").is_some());
         assert!(evaluate("1u32 - 1u32").is_some());
         assert!(evaluate("1u32 * 1u32").is_some());
+        assert!(evaluate("1u32 / 1u32").is_some());
         assert!(evaluate("1u32 & 1u32").is_some());
         assert!(evaluate("1u32 | 1u32").is_some());
         assert!(evaluate("1u32 ^ 1u32").is_some());
@@ -740,6 +812,7 @@ mod tests {
         assert!(evaluate("1u64 + 1u64").is_some());
         assert!(evaluate("1u64 - 1u64").is_some());
         assert!(evaluate("1u64 * 1u64").is_some());
+        assert!(evaluate("1u64 / 1u64").is_some());
         assert!(evaluate("1u64 & 1u64").is_some());
         assert!(evaluate("1u64 | 1u64").is_some());
         assert!(evaluate("1u64 ^ 1u64").is_some());
@@ -761,4 +834,34 @@ mod tests {
         assert!(evaluate("~ -1u64").is_none());
         assert!(evaluate("rr 1u64").is_none());
     }
+
+    #[test]
+    fn test_ascii() {
+        let int = IntType::new_from_str("0x41u8").unwrap();
+        println!("res: {}", int);
+        assert_eq!(int.to_ascii(), "A");
+        let int = IntType::new_from_str("0x4142u16").unwrap();
+        println!("res: {}", int);
+        assert_eq!(int.to_ascii(), "AB");
+        let int = IntType::new_from_str("0x41424344u32").unwrap();
+        println!("res: {}", int);
+        assert_eq!(int.to_ascii(), "ABCD");
+        let int = IntType::new_from_str("0x4142434445464748u64")
+            .unwrap();
+        println!("res: {}", int);
+        assert_eq!(int.to_ascii(), "ABCDEFGH");
+
+        let int = IntType::new_from_str("0x41ff42ff43ff44ffu64")
+            .unwrap();
+        println!("res: {}", int);
+        assert_eq!(int.to_ascii(), "A.B.C.D.");
+
+        let int = IntType::new_from_str("0xffu8")
+            .unwrap();
+        println!("res: {}", int);
+        assert_eq!(int.to_ascii(), ".");
+
+
+    }
+
 }
