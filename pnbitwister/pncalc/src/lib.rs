@@ -544,6 +544,7 @@ impl Calculation {
 pub struct CalculationResult(u64, Bits, bool);
 
 impl CalculationResult {
+
     fn to_binary_string(&self) -> String {
         let mut s = String::new();
         for i in (0..self.1.to_num()).rev() {
@@ -551,6 +552,24 @@ impl CalculationResult {
         }
         s
     }
+
+    pub fn to_ascii(&self) -> String {
+        let mut s = String::new();
+        let nbytes = self.1.to_num() / 8;
+
+        for i in (0..nbytes).rev() {
+            let byte = (self.0 >> (i*8) & 0xff) as u8;
+            let ch = if byte >= 0x20 && byte <= 0x7e {
+                byte as char
+            } else {
+                '.'
+            };
+            s.push(ch);
+        } // for
+
+        s
+    }
+
     pub fn inner(&self) -> u64 {
         self.0
     }
@@ -571,6 +590,7 @@ impl std::fmt::Display for CalculationResult {
         }
         write!(f, "[dec] {}\n", self.0)?;
         write!(f, "[bin] {}\n", self.to_binary_string())?;
+        write!(f, "[ascii] {}\n", self.to_ascii())?;
         write!(f, "[reg]\n{}\n", regprint(self.0, self.1.to_num()))?;
         write!(f, "\n")
     }
@@ -729,6 +749,32 @@ mod tests {
         let tokens = t.tokenize("+ 1 0xffffffffffffffff");
         let res = calc.calculate(&mut tokens.unwrap());
         assert!(res.is_some());
+    }
+
+    #[test]
+    fn test_calculation_result_to_ascii() {
+
+        let c0 = CalculationResult(0xdeadbeefdeadc0de, Bits::U64, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+        let c0 = CalculationResult(0x4142434445464748, Bits::U64, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+
+        let c0 = CalculationResult(0xdeadbeef, Bits::U32, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+        let c0 = CalculationResult(0x41424344, Bits::U32, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+
+        let c0 = CalculationResult(0xdead, Bits::U16, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+        let c0 = CalculationResult(0x4142, Bits::U16, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+
+        let c0 = CalculationResult(0xde, Bits::U8, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+        let c0 = CalculationResult(0x41, Bits::U8, false);
+        println!("{} ascii: {}", c0, c0.to_ascii());
+
+
     }
 
 }
